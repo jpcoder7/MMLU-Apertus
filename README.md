@@ -1,1 +1,1 @@
-# MMLU-Pro-Apertus
+# MMLU-Apertus
