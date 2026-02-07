@@ -146,9 +146,9 @@ class PromptEvalModel(LM):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--pretrained", default="swiss-ai/Apertus-8B-Instruct-2509")
-    ap.add_argument("--limit", type=int, default=50)
-    ap.add_argument("--num_fewshot", type=int, default=5)
+    ap.add_argument("--pretrained", default="swiss-ai/Apertus-8B-2509")
+    ap.add_argument("--limit", type=int, default=5)
+    ap.add_argument("--num_fewshot", type=int, default=0)
     ap.add_argument("--tasks", default="mmlu_stem,mmlu_humanities,mmlu_social_sciences,mmlu_other")
     ap.add_argument("--batch_size", default="auto")
     ap.add_argument("--output_path", required=True)
