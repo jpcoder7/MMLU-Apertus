@@ -2,18 +2,16 @@ import argparse
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
-
 import faiss
 import torch
 from sentence_transformers import SentenceTransformer
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
 from lm_eval import evaluator
 from lm_eval.api.model import LM
 from lm_eval.utils import make_table
 
 
-# Normalize stop sequences into a list of strings
+# Normalize stop sequences into a list of strings.
 def ensure_list(value):
     if value is None:
         return []
@@ -22,7 +20,7 @@ def ensure_list(value):
     return [str(value)]
 
 
-# Load RAG documents from a json file
+# Load RAG documents from a jsonl file.
 def load_docs(path: Path) -> List[Dict[str, Any]]:
     docs: List[Dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as file_handle:
@@ -46,15 +44,15 @@ class RagEvalModel(LM):
         pretrained: str,
         index_dir: str,
         embed_model: str = "sentence-transformers/all-MiniLM-L6-v2",
-        top_k: int = 5,
-        max_ctx_chars: int = 2000,
+        top_k: int = 3,
+        max_ctx_chars: int = 2400,
         debug_first_n: int = 0,
         max_model_len: int = 8192,
     ):
         super().__init__()
         index_dir = Path(index_dir)
 
-        # Load retrieval assets
+        # Load retrieval assets.
         self.docs = load_docs(index_dir / "docs.jsonl")
         self.index = faiss.read_index(str(index_dir / "index.faiss"))
         self.embedder = SentenceTransformer(embed_model)
@@ -64,16 +62,17 @@ class RagEvalModel(LM):
         self.debug_first_n = int(debug_first_n)
         self.debug_count = 0
 
-        # Load model and tokenizer for scoring
+        # Load model and tokenizer for scoring.
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained, trust_remote_code=True, use_fast=True
         )
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained,
             trust_remote_code=True,
-            device_map="auto",
             torch_dtype="auto",
+            low_cpu_mem_usage=False,
         )
+        self.model.to("cuda")
         self.model.eval()
 
         self.max_model_len = int(max_model_len)
@@ -92,7 +91,7 @@ class RagEvalModel(LM):
     def tok_decode(self, tokens):
         return self.tokenizer.decode(tokens)
 
-    # Retrieve top-k passages using FAISS + embeddings
+    # Retrieve top-k passages using FAISS + embeddings.
     def _retrieve(self, raw_query: str) -> str:
         query_text = (raw_query or "").strip()
         if not query_text:
@@ -132,7 +131,7 @@ class RagEvalModel(LM):
 
         return "\n\n".join(chunks)
 
-    # Build the final prompt with retrieved context
+    # Build the final prompt with retrieved context.
     def _build_prompt(self, retrieved_context: str, prompt: str) -> str:
         return (
             "You are given Wikipedia excerpts to help answer a multiple-choice question.\n"
@@ -142,7 +141,7 @@ class RagEvalModel(LM):
             f"{prompt}"
         )
 
-    # Loglikelihood for a single (prompt, continuation) pair
+    # Loglikelihood for a single (prompt, continuation) pair.
     def _loglikelihood_one(self, prompt: str, continuation: str) -> Tuple[float, bool]:
         prompt_ids = self.tokenizer(
             prompt, add_special_tokens=False, return_tensors="pt"
@@ -170,7 +169,7 @@ class RagEvalModel(LM):
 
         return total_logprob, is_greedy
 
-    # Lm-eval scoring path used by MMLU (multiple choice)
+    # lm-eval scoring path used by MMLU (multiple choice).
     def loglikelihood(self, requests):
         results = []
         for r in requests:
@@ -197,7 +196,7 @@ class RagEvalModel(LM):
 
         return results
 
-    # Generic generation path for tasks using generate_until
+    # Generic generation path for tasks using generate_until.
     def generate_until(self, requests):
         outputs = []
         for r in requests:
@@ -236,19 +235,19 @@ class RagEvalModel(LM):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--index_dir", required=True)
-    ap.add_argument("--pretrained", default="swiss-ai/Apertus-8B-Instruct-2509")
-    ap.add_argument("--limit", type=int, default=50)
-    ap.add_argument("--num_fewshot", type=int, default=5)
+    ap.add_argument("--pretrained", default="swiss-ai/Apertus-8B-2509")
+    ap.add_argument("--limit", type=int, default=5)
+    ap.add_argument("--num_fewshot", type=int, default=0)
     ap.add_argument("--tasks", default="mmlu_stem,mmlu_humanities,mmlu_social_sciences,mmlu_other")
     ap.add_argument("--batch_size", default="auto")
     ap.add_argument("--output_path", required=True)
     ap.add_argument("--log_samples", action="store_true")
-
     ap.add_argument("--embed_model", default="sentence-transformers/all-MiniLM-L6-v2")
-    ap.add_argument("--top_k", type=int, default=5)
-    ap.add_argument("--max_ctx_chars", type=int, default=2000)
+    ap.add_argument("--top_k", type=int, default=3)
+    ap.add_argument("--max_ctx_chars", type=int, default=2400)
     ap.add_argument("--debug_first_n", type=int, default=0)
     ap.add_argument("--max_model_len", type=int, default=8192)
+
 
     args = ap.parse_args()
 
