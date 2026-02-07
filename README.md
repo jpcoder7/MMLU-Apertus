@@ -10,17 +10,18 @@ Dies sind die erforderlichen Schritte, um eine geeignete Umgebung für die Evalu
 1. Cache-Verzeichnisse konfigurieren (wichtig für RunPod)
 
    export HF_HOME=/workspace/.cache/huggingface
+   
    export HF_DATASETS_CACHE=/workspace/.cache/huggingface/datasets
 
-2. Hauptabhängigkeiten installieren
+3. Hauptabhängigkeiten installieren
 
    pip install transformers==4.56.2 accelerate safetensors
 
-3. Evaluation-Framework installieren
+4. Evaluation-Framework installieren
 
    pip install "lm-eval[wandb]" datasets sentencepiece
 
-4. RAG-Abhängigkeiten installieren
+5. RAG-Abhängigkeiten installieren
 
    pip install faiss-cpu sentence-transformers
    
