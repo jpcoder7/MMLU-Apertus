@@ -1,9 +1,10 @@
-## MMLU-Apertus
--> Mit MMLU-Apertus kann man drei verschiedene Optimierungsmethoden austesten (Prompt Engineering, RAG (Retrieval-Augmented Generation) und RAG mit Query Reformulation (in der Theorie sollte es für eine effizientere Suche in der Datenbank sorgen)
--> Alle notwendige Skripte befinden sich in diesem Repo 
--> Mit dieser Anleitung kann man die Umgebung (idealerweise auf Runpod - https://www.runpod.io) einrichten 
+# MMLU-Apertus
+- Mit MMLU-Apertus kann man drei verschiedene Optimierungsmethoden austesten (Prompt Engineering, RAG (Retrieval-Augmented Generation) und RAG mit Query Reformulation (in der Theorie sollte es für eine effizientere Suche in der Datenbank sorgen)
+- Alle notwendige Skripte befinden sich in diesem Repo 
+- Mit dieser Anleitung kann man die Umgebung (idealerweise auf Runpod - https://www.runpod.io) einrichten 
 
-##Setup-Anleitung
+# Setup-Anleitung
+Dies sind die erforderlichen Schritte, um eine geeignete Umgebung für die Evaluation zu erstellen.
 
 # 1. Umgebung einrichten
 1. Cache-Verzeichnisse konfigurieren (wichtig für RunPod)
@@ -36,7 +37,7 @@ python build_faiss.py \
 
 #3. Tests durchführen
 
-Baseline-Test (Parameter können angepasst werden)
+Baseline-Test (So startet man den normalen MMLU Test - Parameter können angepasst werden)
 lm-eval \
 --model hf \
 --model_args pretrained=swiss-ai/Apertus-8B-2509,trust_remote_code=True \
