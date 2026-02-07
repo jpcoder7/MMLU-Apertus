@@ -10,28 +10,32 @@ Dies sind die erforderlichen Schritte, um eine geeignete Umgebung für die Evalu
 1. Cache-Verzeichnisse konfigurieren (wichtig für RunPod)
 
    export HF_HOME=/workspace/.cache/huggingface
-   
    export HF_DATASETS_CACHE=/workspace/.cache/huggingface/datasets
 
-3. Hauptabhängigkeiten installieren
-pip install transformers==4.56.2 accelerate safetensors
+2. Hauptabhängigkeiten installieren
 
-4. Evaluation-Framework installieren
-pip install "lm-eval[wandb]" datasets sentencepiece
+   pip install transformers==4.56.2 accelerate safetensors
 
-5. RAG-Abhängigkeiten installieren
-pip install faiss-cpu sentence-transformers
-D.2 Wikipedia-Index erstellen
+3. Evaluation-Framework installieren
 
-# 1. Wikipedia herunterladen (ca. 20 GB)
-1.python download_wiki.py
+   pip install "lm-eval[wandb]" datasets sentencepiece
+
+4. RAG-Abhängigkeiten installieren
+
+   pip install faiss-cpu sentence-transformers
+   
+# 2. Wikipedia-Index erstellen
+
+1. Wikipedia herunterladen (ca. 20 GB)
+   
+   python download_wiki.py bzw. den Befehl direkt im Terminal eingeben
 
 2. Daten aufbereiten
 python prepare_wiki.py \
 --input_jsonl /workspace/rag/wiki/enwiki_20231101_preprocessed.jsonl \
 --out_jsonl /workspace/rag/wiki/enwiki_prepared.jsonl
 
-3. FAISS-Index erstellen
+4. FAISS-Index erstellen
 python build_faiss.py \
 --corpus_jsonl /workspace/rag/wiki/enwiki_prepared.jsonl \
 --out_dir /workspace/rag/wiki \
