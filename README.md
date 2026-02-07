@@ -10,6 +10,7 @@ Dies sind die erforderlichen Schritte, um eine geeignete Umgebung für die Evalu
 1. Cache-Verzeichnisse konfigurieren (wichtig für RunPod)
 
    export HF_HOME=/workspace/.cache/huggingface
+   
    export HF_DATASETS_CACHE=/workspace/.cache/huggingface/datasets
 
 3. Hauptabhängigkeiten installieren
