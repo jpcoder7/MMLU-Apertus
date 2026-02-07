@@ -62,6 +62,7 @@ Dies sind die erforderlichen Schritte, um eine geeignete Umgebung für die Evalu
    --num_fewshot 0 \
    --limit 0 \
    --prompt_preamble "You are taking a multiple-choice exam.." \ (man erstellt eine Textdatei (txt) und referenziert diese)
+   
    --output_path /workspace/outputs/prompt_default.json
 
    RAG Test (Parameter können angepasst werden)
