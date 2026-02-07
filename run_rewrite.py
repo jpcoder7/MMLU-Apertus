@@ -2,12 +2,10 @@ import argparse
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
-
 import faiss
 import torch
 from sentence_transformers import SentenceTransformer
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
 from lm_eval import evaluator
 from lm_eval.api.model import LM
 from lm_eval.utils import make_table
@@ -46,14 +44,12 @@ class RagQueryRewriteEvalModel(LM):
         pretrained: str,
         index_dir: str,
         embed_model: str = "sentence-transformers/all-MiniLM-L6-v2",
-        top_k: int = 5,
-        max_ctx_chars: int = 2000,
+        top_k: int = 3,
+        max_ctx_chars: int = 2400,
         debug_first_n: int = 0,
         max_model_len: int = 8192,
         rewrite_enabled: bool = True,
         rewrite_max_new_tokens: int = 32,
-        rewrite_temperature: float = 0.0,
-        rewrite_top_p: float = 1.0,
     ):
         super().__init__()
         index_dir = Path(index_dir)
@@ -72,6 +68,8 @@ class RagQueryRewriteEvalModel(LM):
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained, trust_remote_code=True, use_fast=True
         )
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = AutoModelForCausalLM.from_pretrained(
             pretrained,
             trust_remote_code=True,
@@ -83,8 +81,6 @@ class RagQueryRewriteEvalModel(LM):
         self.max_model_len = int(max_model_len)
         self.rewrite_enabled = bool(rewrite_enabled)
         self.rewrite_max_new_tokens = int(rewrite_max_new_tokens)
-        self.rewrite_temperature = float(rewrite_temperature)
-        self.rewrite_top_p = float(rewrite_top_p)
         self._rewrite_cache = {}
 
     @property
@@ -117,15 +113,15 @@ class RagQueryRewriteEvalModel(LM):
         input_ids = self.tokenizer(
             rewrite_prompt, return_tensors="pt", add_special_tokens=False
         ).input_ids.to(self.model.device)
+        attention_mask = torch.ones_like(input_ids)
 
         with torch.no_grad():
             out = self.model.generate(
                 input_ids,
+                attention_mask=attention_mask,
                 max_new_tokens=self.rewrite_max_new_tokens,
-                do_sample=self.rewrite_temperature > 0.0,
-                temperature=self.rewrite_temperature,
-                top_p=self.rewrite_top_p,
                 eos_token_id=self.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.pad_token_id,
             )
 
         generated_text = self.tokenizer.decode(
@@ -258,13 +254,15 @@ class RagQueryRewriteEvalModel(LM):
             input_ids = self.tokenizer(
                 full_prompt, return_tensors="pt", add_special_tokens=False
             ).input_ids.to(self.model.device)
+            attention_mask = torch.ones_like(input_ids)
 
             with torch.no_grad():
                 out = self.model.generate(
                     input_ids,
+                    attention_mask=attention_mask,
                     max_new_tokens=32,
-                    do_sample=False,
                     eos_token_id=self.tokenizer.eos_token_id,
+                    pad_token_id=self.tokenizer.pad_token_id,
                 )
 
             generated_text = self.tokenizer.decode(
@@ -284,24 +282,20 @@ class RagQueryRewriteEvalModel(LM):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--index_dir", required=True)
-    ap.add_argument("--pretrained", default="swiss-ai/Apertus-8B-Instruct-2509")
-    ap.add_argument("--limit", type=int, default=50)
-    ap.add_argument("--num_fewshot", type=int, default=5)
+    ap.add_argument("--pretrained", default="swiss-ai/Apertus-8B-2509")
+    ap.add_argument("--limit", type=int, default=5)
+    ap.add_argument("--num_fewshot", type=int, default=0)
     ap.add_argument("--tasks", default="mmlu_stem,mmlu_humanities,mmlu_social_sciences,mmlu_other")
     ap.add_argument("--batch_size", default="auto")
     ap.add_argument("--output_path", required=True)
     ap.add_argument("--log_samples", action="store_true")
-
     ap.add_argument("--embed_model", default="sentence-transformers/all-MiniLM-L6-v2")
-    ap.add_argument("--top_k", type=int, default=5)
-    ap.add_argument("--max_ctx_chars", type=int, default=2000)
+    ap.add_argument("--top_k", type=int, default=3)
+    ap.add_argument("--max_ctx_chars", type=int, default=2400)
     ap.add_argument("--debug_first_n", type=int, default=0)
     ap.add_argument("--max_model_len", type=int, default=8192)
-
     ap.add_argument("--rewrite_enabled", action="store_true")
     ap.add_argument("--rewrite_max_new_tokens", type=int, default=32)
-    ap.add_argument("--rewrite_temperature", type=float, default=0.0)
-    ap.add_argument("--rewrite_top_p", type=float, default=1.0)
 
     args = ap.parse_args()
 
@@ -315,8 +309,6 @@ def main():
         max_model_len=args.max_model_len,
         rewrite_enabled=args.rewrite_enabled,
         rewrite_max_new_tokens=args.rewrite_max_new_tokens,
-        rewrite_temperature=args.rewrite_temperature,
-        rewrite_top_p=args.rewrite_top_p,
     )
 
     tasks = [t.strip() for t in args.tasks.split(",") if t.strip()]
@@ -346,8 +338,6 @@ def main():
             "max_model_len": args.max_model_len,
             "rewrite_enabled": args.rewrite_enabled,
             "rewrite_max_new_tokens": args.rewrite_max_new_tokens,
-            "rewrite_temperature": args.rewrite_temperature,
-            "rewrite_top_p": args.rewrite_top_p,
         },
     }
 
